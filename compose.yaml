@@ -1,0 +1,98 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/marcaai
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+      MARCAAI_CRIPTO_CHAVE: ${MARCAAI_CRIPTO_CHAVE}
+      # Senha do Prometheus para ler /actuator/prometheus (ADR-011); vazia = só o ADMIN logado lê as métricas.
+      MARCAAI_METRICAS_TOKEN: ${MARCAAI_METRICAS_TOKEN:-}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-3600000}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-haiku-4-5}
+      MARCAAI_CORS_ALLOWED_ORIGINS: ${MARCAAI_CORS_ALLOWED_ORIGINS:-http://localhost:5173}
+      # Fuso da JVM: os horários gravados com LocalDateTime.now() (confirmação de presença, histórico de
+      # agendamento, relatórios) e o "hoje" dos filtros seguem o horário de Brasília, não o UTC do container.
+      TZ: ${TZ:-America/Sao_Paulo}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
+    environment:
+      # Origem da API liberada no connect-src da Content-Security-Policy do nginx (ADR-010).
+      API_ORIGIN: ${VITE_API_BASE_URL:-http://localhost:8080}
+    ports:
+      - "5173:8080"
+    depends_on:
+      - backend
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: marcaai
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Monitoramento (ADR-011) — só sobe com: docker compose --profile monitoramento up -d
+  # Portas presas em 127.0.0.1: acessíveis só desta máquina.
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    profiles: ["monitoramento"]
+    # Grava a senha de coleta num arquivo (o prometheus.yml só referencia o arquivo, nunca a senha).
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        printf %s "$$MARCAAI_METRICAS_TOKEN" > /prometheus/token &&
+        exec /bin/prometheus --config.file=/etc/prometheus/prometheus.yml
+        --storage.tsdb.path=/prometheus --storage.tsdb.retention.time=7d
+    environment:
+      MARCAAI_METRICAS_TOKEN: ${MARCAAI_METRICAS_TOKEN:-}
+    volumes:
+      - ./monitoramento/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-dados:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    depends_on:
+      - backend
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    profiles: ["monitoramento"]
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_SENHA_ADMIN:-}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/marcaai-backend.json
+    volumes:
+      - ./monitoramento/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoramento/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-dados:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      - prometheus
+
+volumes:
+  pgdata:
+  prometheus-dados:
+  grafana-dados:

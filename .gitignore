@@ -1,0 +1,23 @@
+# Segredos locais
+.env
+.env.local
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.iml
+
+# SO
+.DS_Store
+
+# Java / Maven
+backend/target/
+*.class
+
+
+# Material de apoio usado no desenvolvimento (docs, base de conhecimento, instruções da IA): fica só local
+material-ia/
+
+# Relatórios do scan OWASP ZAP (scripts/zap-scan.sh)
+relatorios-zap/

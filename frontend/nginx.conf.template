@@ -1,0 +1,24 @@
+# Template: a imagem nginx troca ${API_ORIGIN} pelo valor do ambiente na subida (envsubst), para a CSP
+# liberar só a API configurada. Headers de segurança (OWASP A05, ADR-010) valem para todas as respostas.
+server {
+    listen 8080;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+    server_tokens off;
+
+    add_header Content-Security-Policy "default-src 'self'; connect-src 'self' ${API_ORIGIN}; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "no-referrer" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()" always;
+    # Isolamento entre origens (avisos do OWASP ZAP, ADR-011): a página só carrega recursos da própria origem
+    # e fala com a API por CORS, então pode exigir isso sem quebrar nada.
+    add_header Cross-Origin-Opener-Policy "same-origin" always;
+    add_header Cross-Origin-Embedder-Policy "require-corp" always;
+    add_header Cross-Origin-Resource-Policy "same-origin" always;
+
+    location / {
+        try_files $uri /index.html;
+    }
+}

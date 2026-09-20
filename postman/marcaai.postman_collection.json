@@ -1,0 +1,2120 @@
+{
+  "info": {
+    "name": "MarcaAI",
+    "description": "Encaminhamento digital UBS → especialista/exame com fila priorizada por IA.\n\n**Cobertura:** as 40 operações da API (a mesma lista do Swagger em `/swagger-ui.html`). O teste `DocumentacaoOpenApiTest` falha no `mvn verify` se uma rota nova ficar sem requisição aqui.\n\n**Como rodar:** importe a coleção e o ambiente `local.postman_environment.json`, suba o sistema (`docker compose up --build`) e rode as pastas em ordem, começando por Auth (os logins guardam os tokens no ambiente). Pela linha de comando: `npx newman run postman/marcaai.postman_collection.json -e postman/local.postman_environment.json`.\n\n**Dados:** os cenários usam a massa de demonstração (V013 em diante). Senha de todos os usuários: `Senha123!`. Cada rodada ocupa vagas livres de Cardiologia; quando acabarem, os passos de agendamento falham com uma mensagem clara — recrie o banco com `docker compose down -v && docker compose up --build`.\n\nCada requisição descreve a rota, quem chama (qual token) e o status esperado.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "description": "Verifica se o backend está no ar. Rota pública, sem token.",
+      "item": [
+        {
+          "name": "Actuator Health",
+          "request": {
+            "description": "Health check do Spring Boot Actuator.\n\n- **Rota:** `GET /actuator/health`\n- **Quem chama:** sem token\n- **Espera:** 200",
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/actuator/health", "host": ["{{baseUrl}}"], "path": ["actuator", "health"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status UP', () => pm.expect(pm.response.json().status).to.eql('UP'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "description": "Faz login com cada papel de demonstração e guarda os tokens no ambiente: `tokenMedico` (bruno.ubs), `tokenSecretaria`, `tokenLab` (lab.central), `tokenEspecialista` (elisa.cardio), `tokenPaciente` (marta.paciente) e `tokenPacienteJoao`. Rode esta pasta primeiro.",
+      "item": [
+        {
+          "name": "Login - Médico UBS (bruno.ubs)",
+          "request": {
+            "description": "Autentica um usuário e retorna um token JWT com o papel embutido.\n\n- **Rota:** `POST /auth/login`\n- **Quem chama:** sem token\n- **Espera:** 200 — Login aceito; devolve o token",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"login\": \"bruno.ubs\",\n  \"senha\": \"{{senhaDemo}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.environment.set('tokenMedico', pm.response.json().token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login - Secretaria",
+          "request": {
+            "description": "Autentica um usuário e retorna um token JWT com o papel embutido.\n\n- **Rota:** `POST /auth/login`\n- **Quem chama:** sem token\n- **Espera:** 200 — Login aceito; devolve o token",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"login\": \"secretaria\",\n  \"senha\": \"{{senhaDemo}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.environment.set('tokenSecretaria', pm.response.json().token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login - Laboratório (especialista de Hemograma)",
+          "request": {
+            "description": "Autentica um usuário e retorna um token JWT com o papel embutido.\n\n- **Rota:** `POST /auth/login`\n- **Quem chama:** sem token\n- **Espera:** 200 — Login aceito; devolve o token",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"login\": \"lab.central\",\n  \"senha\": \"{{senhaDemo}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.environment.set('tokenLab', pm.response.json().token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login - Especialista Cardiologia (elisa.cardio)",
+          "request": {
+            "description": "Autentica um usuário e retorna um token JWT com o papel embutido.\n\n- **Rota:** `POST /auth/login`\n- **Quem chama:** sem token\n- **Espera:** 200 — Login aceito; devolve o token",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"login\": \"elisa.cardio\",\n  \"senha\": \"{{senhaDemo}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.environment.set('tokenEspecialista', pm.response.json().token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login - Paciente (marta.paciente)",
+          "request": {
+            "description": "Autentica um usuário e retorna um token JWT com o papel embutido.\n\n- **Rota:** `POST /auth/login`\n- **Quem chama:** sem token\n- **Espera:** 200 — Login aceito; devolve o token",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"login\": \"marta.paciente\",\n  \"senha\": \"{{senhaDemo}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.environment.set('tokenPaciente', pm.response.json().token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login - Paciente (joao.paciente)",
+          "request": {
+            "description": "Autentica um usuário e retorna um token JWT com o papel embutido.\n\n- **Rota:** `POST /auth/login`\n- **Quem chama:** sem token\n- **Espera:** 200 — Login aceito; devolve o token",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"login\": \"joao.paciente\",\n  \"senha\": \"{{senhaDemo}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.environment.set('tokenPacienteJoao', pm.response.json().token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login com senha errada (401 esperado)",
+          "request": {
+            "description": "Autentica um usuário e retorna um token JWT com o papel embutido.\n\n- **Rota:** `POST /auth/login`\n- **Quem chama:** sem token\n- **Espera:** 401 — Login ou senha inválidos",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"login\": \"bruno.ubs\",\n  \"senha\": \"senha-errada\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "event": [
+            { "listen": "test", "script": { "exec": ["pm.test('Status 401', () => pm.response.to.have.status(401));"] } }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "CID",
+      "description": "Catálogo usado para encaminhar: CIDs por especialidade, especialidades/exames e documentos exigidos.",
+      "item": [
+        {
+          "name": "Listar CIDs compatíveis com Cardiologia",
+          "request": {
+            "description": "Lista os CIDs compatíveis com a especialidade informada.\n\n- **Rota:** `GET /cids`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 200 — CIDs compatíveis (pode ser lista vazia)",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenMedico}}" }],
+            "url": { "raw": "{{baseUrl}}/cids?especialidade=Cardiologia", "host": ["{{baseUrl}}"], "path": ["cids"], "query": [{ "key": "especialidade", "value": "Cardiologia" }] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Retorna I20', () => pm.expect(pm.response.json().some(c => c.codigo === 'I20')).to.be.true);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar especialidades/exames",
+          "request": {
+            "description": "Lista as especialidades/exames conhecidas pelo sistema.\n\n- **Rota:** `GET /especialidades`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 200 — Nomes das especialidades e exames",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenMedico}}" }],
+            "url": { "raw": "{{baseUrl}}/especialidades", "host": ["{{baseUrl}}"], "path": ["especialidades"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Inclui Cardiologia', () => pm.expect(pm.response.json()).to.include('Cardiologia'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Documentos exigidos para Cardiologia",
+          "request": {
+            "description": "Lista os tipos de documento exigidos para a especialidade/exame (vazio se nenhum).\n\n- **Rota:** `GET /especialidades/{especialidade}/documentos-exigidos`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 200 — Tipos exigidos, em maiúsculas (pode ser lista vazia)",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenMedico}}" }],
+            "url": { "raw": "{{baseUrl}}/especialidades/Cardiologia/documentos-exigidos", "host": ["{{baseUrl}}"], "path": ["especialidades", "Cardiologia", "documentos-exigidos"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cardiologia exige guia, exame anterior e laudo', () => pm.expect(pm.response.json()).to.have.members(['GUIA_ENCAMINHAMENTO', 'EXAME_ANTERIOR', 'LAUDO']));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Especialidade sem documentos exigidos devolve lista vazia",
+          "request": {
+            "description": "Lista os tipos de documento exigidos para a especialidade/exame (vazio se nenhum).\n\n- **Rota:** `GET /especialidades/{especialidade}/documentos-exigidos`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 200 — Tipos exigidos, em maiúsculas (pode ser lista vazia)",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenMedico}}" }],
+            "url": { "raw": "{{baseUrl}}/especialidades/Astrologia/documentos-exigidos", "host": ["{{baseUrl}}"], "path": ["especialidades", "Astrologia", "documentos-exigidos"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Lista vazia', () => pm.expect(pm.response.json()).to.be.an('array').that.is.empty);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Encaminhamento - Cenário urgente (Marta fura fila)",
+      "description": "Marta, risco VERMELHO, encaminhada com urgência para Cardiologia. Ao completar os documentos exigidos, a triagem dá score alto e ela passa à frente na fila.",
+      "item": [
+        {
+          "name": "1. Criar atendimento (Marta, risco VERMELHO)",
+          "request": {
+            "description": "Registra o atendimento de um paciente na UBS.\n\n- **Rota:** `POST /atendimentos`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 201 — Atendimento registrado",
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenMedico}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pacienteId\": 1,\n  \"unidadeId\": 1,\n  \"data\": \"2026-09-20T09:00:00\",\n  \"notas\": \"Dor torácica com piora súbita\",\n  \"classificacaoRisco\": \"VERMELHO\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/atendimentos", "host": ["{{baseUrl}}"], "path": ["atendimentos"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('atendimentoId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Criar encaminhamento urgente (CID I20, Cardiologia)",
+          "request": {
+            "description": "Cria um encaminhamento com pelo menos um documento (CID + flag de urgência opcional).\n\n- **Rota:** `POST /encaminhamentos`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 201 — Encaminhamento criado (e triado, se os documentos exigidos vieram completos)",
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenMedico}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"atendimentoId\": {{atendimentoId}},\n  \"tipo\": \"CONSULTA_ESPECIALISTA\",\n  \"especialidadeOuExame\": \"Cardiologia\",\n  \"cidId\": 1,\n  \"urgente\": true,\n  \"justificativaUrgencia\": \"Dor torácica com piora súbita, risco de evento cardíaco agudo\",\n  \"documentos\": [\n    { \"tipo\": \"GUIA_ENCAMINHAMENTO\", \"referenciaArquivo\": \"guia-marta.pdf\", \"dataEmissao\": \"2026-09-20\" }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/encaminhamentos", "host": ["{{baseUrl}}"], "path": ["encaminhamentos"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('encaminhamentoIdUrgente', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3. Anexar EXAME_ANTERIOR",
+          "request": {
+            "description": "Anexa um documento ao encaminhamento; dispara a análise de IA quando todos os obrigatórios estiverem presentes.\n\n- **Rota:** `POST /encaminhamentos/{id}/documentos`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 201 — Documento anexado",
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenMedico}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"tipo\": \"EXAME_ANTERIOR\",\n  \"referenciaArquivo\": \"exame-marta.pdf\",\n  \"dataEmissao\": \"2026-09-19\"\n}" },
+            "url": { "raw": "{{baseUrl}}/encaminhamentos/{{encaminhamentoIdUrgente}}/documentos", "host": ["{{baseUrl}}"], "path": ["encaminhamentos", "{{encaminhamentoIdUrgente}}", "documentos"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 201', () => pm.response.to.have.status(201));"] } }]
+        },
+        {
+          "name": "4. Anexar LAUDO (dispara a análise de IA)",
+          "request": {
+            "description": "Anexa um documento ao encaminhamento; dispara a análise de IA quando todos os obrigatórios estiverem presentes.\n\n- **Rota:** `POST /encaminhamentos/{id}/documentos`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 201 — Documento anexado",
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenMedico}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"tipo\": \"LAUDO\",\n  \"referenciaArquivo\": \"laudo-marta.pdf\",\n  \"dataEmissao\": \"2026-09-20\"\n}" },
+            "url": { "raw": "{{baseUrl}}/encaminhamentos/{{encaminhamentoIdUrgente}}/documentos", "host": ["{{baseUrl}}"], "path": ["encaminhamentos", "{{encaminhamentoIdUrgente}}", "documentos"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 201', () => pm.response.to.have.status(201));"] } }]
+        },
+        {
+          "name": "6. Ver análise de IA (score alto, não bloqueado)",
+          "request": {
+            "description": "Consulta o resultado da análise de IA de um encaminhamento.\n\n- **Rota:** `GET /encaminhamentos/{id}/analise-ia`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 200 — Resultado da triagem",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenMedico}}" }],
+            "url": { "raw": "{{baseUrl}}/encaminhamentos/{{encaminhamentoIdUrgente}}/analise-ia", "host": ["{{baseUrl}}"], "path": ["encaminhamentos", "{{encaminhamentoIdUrgente}}", "analise-ia"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Não bloqueado', () => pm.expect(pm.response.json().bloqueado).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "7. Marta consulta os PRÓPRIOS encaminhamentos (200 esperado)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenPaciente}}" }],
+            "url": { "raw": "{{baseUrl}}/pacientes/1/encaminhamentos", "host": ["{{baseUrl}}"], "path": ["pacientes", "1", "encaminhamentos"] },
+            "description": "Lista os encaminhamentos de um paciente.\n\n- **Rota:** `GET /pacientes/{id}/encaminhamentos`\n- **Quem chama:** paciente Marta, marta.paciente (`tokenPaciente`)\n- **Espera:** 200 — Encaminhamentos visíveis para o usuário (pode ser lista vazia)\n\ntokenPaciente é de marta.paciente (paciente id 1) — deve conseguir ver os próprios encaminhamentos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const idEsperado = Number(pm.environment.get('encaminhamentoIdUrgente'));",
+                  "pm.test('Contém o encaminhamento urgente criado nesta pasta', () => pm.expect(pm.response.json().some(e => e.id === idEsperado)).to.be.true);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Encaminhamento - Cenário irregular (Carlos, CID incompatível)",
+      "description": "Carlos encaminhado para Cardiologia com o CID M54 (compatível só com Ortopedia). A triagem bloqueia o encaminhamento para revisão (BLOQUEADO_REVISAO) e ele não entra na fila.",
+      "item": [
+        {
+          "name": "1. Criar atendimento (Carlos)",
+          "request": {
+            "description": "Registra o atendimento de um paciente na UBS.\n\n- **Rota:** `POST /atendimentos`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 201 — Atendimento registrado",
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenMedico}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pacienteId\": 3,\n  \"unidadeId\": 1,\n  \"data\": \"2026-09-20T10:00:00\",\n  \"notas\": \"Dor lombar\",\n  \"classificacaoRisco\": \"VERDE\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/atendimentos", "host": ["{{baseUrl}}"], "path": ["atendimentos"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('atendimentoId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Criar encaminhamento com CID incompatível (M54 é só de Ortopedia)",
+          "request": {
+            "description": "Cria um encaminhamento com pelo menos um documento (CID + flag de urgência opcional).\n\n- **Rota:** `POST /encaminhamentos`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 201 — Encaminhamento criado (e triado, se os documentos exigidos vieram completos)",
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenMedico}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"atendimentoId\": {{atendimentoId}},\n  \"tipo\": \"CONSULTA_ESPECIALISTA\",\n  \"especialidadeOuExame\": \"Cardiologia\",\n  \"cidId\": 3,\n  \"urgente\": false,\n  \"documentos\": [\n    { \"tipo\": \"GUIA_ENCAMINHAMENTO\", \"referenciaArquivo\": \"guia-carlos.pdf\", \"dataEmissao\": \"2026-09-20\" }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/encaminhamentos", "host": ["{{baseUrl}}"], "path": ["encaminhamentos"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('encaminhamentoIdIrregular', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3. Anexar EXAME_ANTERIOR (a guia veio na criação)",
+          "request": {
+            "description": "Anexa um documento ao encaminhamento; dispara a análise de IA quando todos os obrigatórios estiverem presentes.\n\n- **Rota:** `POST /encaminhamentos/{id}/documentos`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 201 — Documento anexado",
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenMedico}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"tipo\": \"EXAME_ANTERIOR\",\n  \"referenciaArquivo\": \"exame-carlos.pdf\",\n  \"dataEmissao\": \"2026-09-19\"\n}" },
+            "url": { "raw": "{{baseUrl}}/encaminhamentos/{{encaminhamentoIdIrregular}}/documentos", "host": ["{{baseUrl}}"], "path": ["encaminhamentos", "{{encaminhamentoIdIrregular}}", "documentos"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 201', () => pm.response.to.have.status(201));"] } }]
+        },
+        {
+          "name": "4. Anexar LAUDO (completa os obrigatórios e dispara a análise)",
+          "request": {
+            "description": "Anexa um documento ao encaminhamento; dispara a análise de IA quando todos os obrigatórios estiverem presentes.\n\n- **Rota:** `POST /encaminhamentos/{id}/documentos`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 201 — Documento anexado",
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenMedico}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"tipo\": \"LAUDO\",\n  \"referenciaArquivo\": \"laudo-carlos.pdf\",\n  \"dataEmissao\": \"2026-09-20\"\n}" },
+            "url": { "raw": "{{baseUrl}}/encaminhamentos/{{encaminhamentoIdIrregular}}/documentos", "host": ["{{baseUrl}}"], "path": ["encaminhamentos", "{{encaminhamentoIdIrregular}}", "documentos"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 201', () => pm.response.to.have.status(201));"] } }]
+        },
+        {
+          "name": "6. Ver análise de IA (bloqueado por CID incompatível)",
+          "request": {
+            "description": "Consulta o resultado da análise de IA de um encaminhamento.\n\n- **Rota:** `GET /encaminhamentos/{id}/analise-ia`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 200 — Resultado da triagem",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenMedico}}" }],
+            "url": { "raw": "{{baseUrl}}/encaminhamentos/{{encaminhamentoIdIrregular}}/analise-ia", "host": ["{{baseUrl}}"], "path": ["encaminhamentos", "{{encaminhamentoIdIrregular}}", "analise-ia"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Bloqueado', () => pm.expect(pm.response.json().bloqueado).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Encaminhamento - Cenário normal (João, fluxo completo)",
+      "description": "João, risco AMARELO: atendimento, encaminhamento e documentos até entrar na fila. Inclui as verificações de acesso por vínculo (ADR-007): 403 para quem não tem vínculo com o dado e 401 sem login.",
+      "item": [
+        {
+          "name": "1. Criar atendimento (João, risco AMARELO)",
+          "request": {
+            "description": "Registra o atendimento de um paciente na UBS.\n\n- **Rota:** `POST /atendimentos`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 201 — Atendimento registrado",
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenMedico}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pacienteId\": 2,\n  \"unidadeId\": 1,\n  \"data\": \"2026-09-20T11:00:00\",\n  \"notas\": \"Hipertensão em acompanhamento\",\n  \"classificacaoRisco\": \"AMARELO\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/atendimentos", "host": ["{{baseUrl}}"], "path": ["atendimentos"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('atendimentoId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Criar encaminhamento normal (CID I10, Cardiologia)",
+          "request": {
+            "description": "Cria um encaminhamento com pelo menos um documento (CID + flag de urgência opcional).\n\n- **Rota:** `POST /encaminhamentos`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 201 — Encaminhamento criado (e triado, se os documentos exigidos vieram completos)",
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenMedico}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"atendimentoId\": {{atendimentoId}},\n  \"tipo\": \"CONSULTA_ESPECIALISTA\",\n  \"especialidadeOuExame\": \"Cardiologia\",\n  \"cidId\": 2,\n  \"urgente\": false,\n  \"documentos\": [\n    { \"tipo\": \"GUIA_ENCAMINHAMENTO\", \"referenciaArquivo\": \"guia-joao.pdf\", \"dataEmissao\": \"2026-09-20\" }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/encaminhamentos", "host": ["{{baseUrl}}"], "path": ["encaminhamentos"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('encaminhamentoId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2.1 Criar encaminhamento SEM documento (400 esperado)",
+          "request": {
+            "description": "Cria um encaminhamento com pelo menos um documento (CID + flag de urgência opcional).\n\n- **Rota:** `POST /encaminhamentos`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 400 — Campo obrigatório ausente, ou nenhum documento",
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenMedico}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"atendimentoId\": {{atendimentoId}},\n  \"tipo\": \"CONSULTA_ESPECIALISTA\",\n  \"especialidadeOuExame\": \"Cardiologia\",\n  \"cidId\": 2,\n  \"urgente\": false,\n  \"documentos\": []\n}" },
+            "url": { "raw": "{{baseUrl}}/encaminhamentos", "host": ["{{baseUrl}}"], "path": ["encaminhamentos"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 400: o encaminhamento só nasce com documento', () => pm.response.to.have.status(400));"] } }]
+        },
+        {
+          "name": "3. Anexar EXAME_ANTERIOR",
+          "request": {
+            "description": "Anexa um documento ao encaminhamento; dispara a análise de IA quando todos os obrigatórios estiverem presentes.\n\n- **Rota:** `POST /encaminhamentos/{id}/documentos`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 201 — Documento anexado",
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenMedico}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"tipo\": \"EXAME_ANTERIOR\",\n  \"referenciaArquivo\": \"exame-joao.pdf\",\n  \"dataEmissao\": \"2026-09-19\"\n}" },
+            "url": { "raw": "{{baseUrl}}/encaminhamentos/{{encaminhamentoId}}/documentos", "host": ["{{baseUrl}}"], "path": ["encaminhamentos", "{{encaminhamentoId}}", "documentos"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 201', () => pm.response.to.have.status(201));"] } }]
+        },
+        {
+          "name": "4. Anexar LAUDO (dispara a análise de IA)",
+          "request": {
+            "description": "Anexa um documento ao encaminhamento; dispara a análise de IA quando todos os obrigatórios estiverem presentes.\n\n- **Rota:** `POST /encaminhamentos/{id}/documentos`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 201 — Documento anexado",
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenMedico}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"tipo\": \"LAUDO\",\n  \"referenciaArquivo\": \"laudo-joao.pdf\",\n  \"dataEmissao\": \"2026-09-20\"\n}" },
+            "url": { "raw": "{{baseUrl}}/encaminhamentos/{{encaminhamentoId}}/documentos", "host": ["{{baseUrl}}"], "path": ["encaminhamentos", "{{encaminhamentoId}}", "documentos"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 201', () => pm.response.to.have.status(201));"] } }]
+        },
+        {
+          "name": "6. Ver timeline (checklist de status)",
+          "request": {
+            "description": "Checklist de status do encaminhamento (atendido → encaminhado → agendado → realizado).\n\n- **Rota:** `GET /encaminhamentos/{id}/timeline`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 200 — Etapas, com as já alcançadas marcadas",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenMedico}}" }],
+            "url": { "raw": "{{baseUrl}}/encaminhamentos/{{encaminhamentoId}}/timeline", "host": ["{{baseUrl}}"], "path": ["encaminhamentos", "{{encaminhamentoId}}", "timeline"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "6.1 Consultar atendimento (nomes do paciente e do médico)",
+          "request": {
+            "description": "Consulta um atendimento pelo id.\n\n- **Rota:** `GET /atendimentos/{id}`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 200 — Atendimento encontrado, com nomes de paciente, médico e unidade",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenMedico}}" }],
+            "url": { "raw": "{{baseUrl}}/atendimentos/{{atendimentoId}}", "host": ["{{baseUrl}}"], "path": ["atendimentos", "{{atendimentoId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const at = pm.response.json();",
+                  "pm.test('Paciente João, com nome', () => { pm.expect(at.pacienteId).to.eql(2); pm.expect(at.pacienteNome).to.be.a('string').and.not.empty; });",
+                  "pm.test('Assinado pelo médico logado (Dr. Bruno, id 1)', () => pm.expect(at.profissionalId).to.eql(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.2 Consultar encaminhamento",
+          "request": {
+            "description": "Consulta um encaminhamento pelo id.\n\n- **Rota:** `GET /encaminhamentos/{id}`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 200 — Encaminhamento encontrado",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenMedico}}" }],
+            "url": { "raw": "{{baseUrl}}/encaminhamentos/{{encaminhamentoId}}", "host": ["{{baseUrl}}"], "path": ["encaminhamentos", "{{encaminhamentoId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('É o encaminhamento do João', () => pm.expect(pm.response.json().id).to.eql(Number(pm.environment.get('encaminhamentoId'))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.3 Listar documentos anexados",
+          "request": {
+            "description": "Lista os documentos anexados ao encaminhamento.\n\n- **Rota:** `GET /encaminhamentos/{id}/documentos`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 200 — Documentos anexados",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenMedico}}" }],
+            "url": { "raw": "{{baseUrl}}/encaminhamentos/{{encaminhamentoId}}/documentos", "host": ["{{baseUrl}}"], "path": ["encaminhamentos", "{{encaminhamentoId}}", "documentos"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Os 3 documentos obrigatórios', () => pm.expect(pm.response.json()).to.have.lengthOf(3));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.4 Especialista ainda NÃO vê a consulta do João: não está agendada com ela (403 esperado)",
+          "request": {
+            "description": "Consulta um encaminhamento pelo id.\n\n- **Rota:** `GET /encaminhamentos/{id}`\n- **Quem chama:** especialista de Cardiologia, elisa.cardio (`tokenEspecialista`)\n- **Espera:** 403 — O encaminhamento não é do usuário logado",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenEspecialista}}" }],
+            "url": { "raw": "{{baseUrl}}/encaminhamentos/{{encaminhamentoId}}", "host": ["{{baseUrl}}"], "path": ["encaminhamentos", "{{encaminhamentoId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.5 Laboratório NÃO vê consulta de Cardiologia (403 esperado)",
+          "request": {
+            "description": "Consulta um encaminhamento pelo id.\n\n- **Rota:** `GET /encaminhamentos/{id}`\n- **Quem chama:** laboratório, lab.central (`tokenLab`)\n- **Espera:** 403 — O encaminhamento não é do usuário logado",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenLab}}" }],
+            "url": { "raw": "{{baseUrl}}/encaminhamentos/{{encaminhamentoId}}", "host": ["{{baseUrl}}"], "path": ["encaminhamentos", "{{encaminhamentoId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.6 Sem login (401 esperado)",
+          "request": {
+            "description": "Consulta um encaminhamento pelo id.\n\n- **Rota:** `GET /encaminhamentos/{id}`\n- **Quem chama:** sem token\n- **Espera:** 401 — Sem token, ou token inválido ou expirado",
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/encaminhamentos/{{encaminhamentoId}}", "host": ["{{baseUrl}}"], "path": ["encaminhamentos", "{{encaminhamentoId}}"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "7. Marta NÃO pode ver os encaminhamentos de João (403 esperado)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenPaciente}}" }],
+            "url": { "raw": "{{baseUrl}}/pacientes/2/encaminhamentos", "host": ["{{baseUrl}}"], "path": ["pacientes", "2", "encaminhamentos"] },
+            "description": "Lista os encaminhamentos de um paciente.\n\n- **Rota:** `GET /pacientes/{id}/encaminhamentos`\n- **Quem chama:** paciente Marta, marta.paciente (`tokenPaciente`)\n- **Espera:** 403 — Paciente pedindo os de outro, ou especialista\n\ntokenPaciente é de marta.paciente (paciente id 1). Tentar ver os encaminhamentos do paciente 2 (João) deve ser sempre bloqueado — ADR-005."
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 403', () => pm.response.to.have.status(403));"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Fila (Secretaria)",
+      "description": "Visões da fila (secretaria por especialidade, médico pelos que encaminhou, todas as filas), posição do João, ajuste manual auditado e relatório de IA da fila.",
+      "item": [
+        {
+          "name": "Listar fila por especialidade (Cardiologia)",
+          "request": {
+            "description": "Lista a fila por especialidade (secretaria) ou pelos pacientes que um médico encaminhou.\n\n- **Rota:** `GET /fila`\n- **Quem chama:** secretaria (`tokenSecretaria`)\n- **Espera:** 200 — Itens na ordem da fila (pode ser lista vazia)",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenSecretaria}}" }],
+            "url": { "raw": "{{baseUrl}}/fila?especialidade=Cardiologia", "host": ["{{baseUrl}}"], "path": ["fila"], "query": [{ "key": "especialidade", "value": "Cardiologia" }] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "if (Array.isArray(body) && body.length > 0) { pm.environment.set('itemFilaId', body[0].itemId); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar fila por médico que encaminhou (Dr. Bruno, id 1)",
+          "request": {
+            "description": "Lista a fila por especialidade (secretaria) ou pelos pacientes que um médico encaminhou.\n\n- **Rota:** `GET /fila`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 200 — Itens na ordem da fila (pode ser lista vazia)",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenMedico}}" }],
+            "url": { "raw": "{{baseUrl}}/fila?encaminhadoPor=1", "host": ["{{baseUrl}}"], "path": ["fila"], "query": [{ "key": "encaminhadoPor", "value": "1" }] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Todas as filas, agrupadas por especialidade",
+          "request": {
+            "description": "Lista a fila de todas as especialidades/exames de uma vez, agrupada (secretaria).\n\n- **Rota:** `GET /fila/todas`\n- **Quem chama:** secretaria (`tokenSecretaria`)\n- **Espera:** 200 — Filas agrupadas por especialidade/exame",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenSecretaria}}" }],
+            "url": { "raw": "{{baseUrl}}/fila/todas", "host": ["{{baseUrl}}"], "path": ["fila", "todas"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Tem a fila de Cardiologia', () => pm.expect(pm.response.json()).to.have.property('Cardiologia'));",
+                  "pm.test('Itens trazem paciente, situação e risco', () => { const item = pm.response.json()['Cardiologia'][0]; pm.expect(item.pacienteNome).to.be.a('string').and.not.empty; pm.expect(['NA_FILA', 'AGENDADO']).to.include(item.statusEncaminhamento); pm.expect(item.classificacaoRisco).to.be.a('string'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Posição do João na fila",
+          "request": {
+            "description": "Consulta a posição e o score de um encaminhamento na fila.\n\n- **Rota:** `GET /encaminhamentos/{id}/posicao-fila`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 200 — Posição atual e score",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenMedico}}" }],
+            "url": { "raw": "{{baseUrl}}/encaminhamentos/{{encaminhamentoId}}/posicao-fila", "host": ["{{baseUrl}}"], "path": ["encaminhamentos", "{{encaminhamentoId}}", "posicao-fila"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Posição a partir de 1', () => pm.expect(pm.response.json().posicao).to.be.at.least(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Override manual da fila (exige justificativa)",
+          "request": {
+            "description": "Ajusta manualmente a posição de um item na fila (exige justificativa).\n\n- **Rota:** `PATCH /fila/{itemId}/override`\n- **Quem chama:** secretaria (`tokenSecretaria`)\n- **Espera:** 200 — Ajuste aplicado; devolve a posição final do item",
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenSecretaria}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"posicao\": 1,\n  \"justificativa\": \"Paciente já estava presente na unidade no momento do agendamento\"\n}" },
+            "url": { "raw": "{{baseUrl}}/fila/{{itemFilaId}}/override", "host": ["{{baseUrl}}"], "path": ["fila", "{{itemFilaId}}", "override"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Relatório IA: médico NÃO gera (403 esperado)",
+          "request": {
+            "description": "Gera um relatório de sugestões para a fila de uma especialidade/exame.\n\n- **Rota:** `POST /fila/relatorio-ia`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 403 — Papel sem acesso ao relatório",
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenMedico}}" }],
+            "url": { "raw": "{{baseUrl}}/fila/relatorio-ia?especialidade=Cardiologia", "host": ["{{baseUrl}}"], "path": ["fila", "relatorio-ia"], "query": [{ "key": "especialidade", "value": "Cardiologia" }] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Relatório IA: especialidade desconhecida (422 esperado)",
+          "request": {
+            "description": "Gera um relatório de sugestões para a fila de uma especialidade/exame.\n\n- **Rota:** `POST /fila/relatorio-ia`\n- **Quem chama:** secretaria (`tokenSecretaria`)\n- **Espera:** 422 — Especialidade/exame fora do catálogo",
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenSecretaria}}" }],
+            "url": { "raw": "{{baseUrl}}/fila/relatorio-ia?especialidade=Astrologia", "host": ["{{baseUrl}}"], "path": ["fila", "relatorio-ia"], "query": [{ "key": "especialidade", "value": "Astrologia" }] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 422', () => pm.response.to.have.status(422));",
+                  "pm.test('Código de erro REGRA_DE_NEGOCIO', () => pm.expect(pm.response.json().erro).to.eql('REGRA_DE_NEGOCIO'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Relatório IA: gerar para Cardiologia",
+          "request": {
+            "description": "Gera um relatório de sugestões para a fila de uma especialidade/exame.\n\n- **Rota:** `POST /fila/relatorio-ia`\n- **Quem chama:** secretaria (`tokenSecretaria`)\n- **Espera:** 201 — Relatório gerado e gravado",
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenSecretaria}}" }],
+            "url": { "raw": "{{baseUrl}}/fila/relatorio-ia?especialidade=Cardiologia", "host": ["{{baseUrl}}"], "path": ["fila", "relatorio-ia"], "query": [{ "key": "especialidade", "value": "Cardiologia" }] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const r = pm.response.json();",
+                  "pm.test('Traz texto, origem e sugestões', () => { pm.expect(r.texto).to.be.a('string').and.not.empty; pm.expect(['IA', 'MODELO']).to.include(r.origemTexto); pm.expect(r.sugestoes).to.be.an('array'); pm.expect(r.geradoPor).to.eql('secretaria'); });",
+                  "pm.environment.set('relatorioFilaId', r.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Relatório IA: consultar o último de Cardiologia",
+          "request": {
+            "description": "Último relatório gerado para a fila de uma especialidade/exame (404 se ainda não houver).\n\n- **Rota:** `GET /fila/relatorio-ia`\n- **Quem chama:** secretaria (`tokenSecretaria`)\n- **Espera:** 200 — Relatório mais recente",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenSecretaria}}" }],
+            "url": { "raw": "{{baseUrl}}/fila/relatorio-ia?especialidade=Cardiologia", "host": ["{{baseUrl}}"], "path": ["fila", "relatorio-ia"], "query": [{ "key": "especialidade", "value": "Cardiologia" }] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('É o que acabou de ser gerado', () => pm.expect(pm.response.json().id).to.eql(Number(pm.environment.get('relatorioFilaId'))));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Vagas e Agendamento",
+      "description": "Agenda o João, remarca, antecipa, cancela e reagenda; o paciente confirma presença. Cada rodada ocupa vagas livres de Cardiologia.",
+      "item": [
+        {
+          "name": "Listar vagas disponíveis (Cardiologia)",
+          "request": {
+            "description": "Lista vagas disponíveis para uma especialidade/exame.\n\n- **Rota:** `GET /vagas`\n- **Quem chama:** secretaria (`tokenSecretaria`)\n- **Espera:** 200 — Vagas livres (pode ser lista vazia)",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenSecretaria}}" }],
+            "url": { "raw": "{{baseUrl}}/vagas?especialidade=Cardiologia", "host": ["{{baseUrl}}"], "path": ["vagas"], "query": [{ "key": "especialidade", "value": "Cardiologia" }] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "// Cada rodada completa ocupa 1 vaga de Cardiologia; sem vaga, o agendamento a seguir não tem como passar.",
+                  "pm.test('Há 2 vagas de Cardiologia livres para agendar e remarcar (se falhar: docker compose down -v && docker compose up --build)', () => pm.expect(body).to.be.an('array').with.lengthOf.at.least(2));",
+                  "if (Array.isArray(body) && body.length > 0) { pm.environment.set('vagaId', body[0].id); } else { pm.environment.unset('vagaId'); }",
+                  "if (Array.isArray(body) && body.length > 1) { pm.environment.set('vagaIdRemarcacao', body[1].id); } else { pm.environment.unset('vagaIdRemarcacao'); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Confirmar agendamento (caso normal - João)",
+          "request": {
+            "description": "Confirma um agendamento vinculando um encaminhamento a uma vaga disponível.\n\n- **Rota:** `POST /agendamentos`\n- **Quem chama:** secretaria (`tokenSecretaria`)\n- **Espera:** 201 — Agendamento confirmado",
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenSecretaria}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"encaminhamentoId\": {{encaminhamentoId}},\n  \"vagaId\": {{vagaId}}\n}" },
+            "url": { "raw": "{{baseUrl}}/agendamentos", "host": ["{{baseUrl}}"], "path": ["agendamentos"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 201', () => pm.response.to.have.status(201));", "pm.environment.set('agendamentoId', pm.response.json().id);"] } }]
+        },
+        {
+          "name": "Médico NÃO pode remarcar (403 esperado)",
+          "request": {
+            "description": "Troca a vaga por outra livre da mesma especialidade, em qualquer data (motivo obrigatório).\n\n- **Rota:** `POST /agendamentos/{id}/remarcar`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 403 — Papel sem permissão para remarcar",
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenMedico}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"vagaId\": {{vagaIdRemarcacao}},\n  \"motivo\": \"Tentativa sem permissão\"\n}" },
+            "url": { "raw": "{{baseUrl}}/agendamentos/{{agendamentoId}}/remarcar", "host": ["{{baseUrl}}"], "path": ["agendamentos", "{{agendamentoId}}", "remarcar"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Remarcar João para uma vaga mais tarde",
+          "request": {
+            "description": "Troca a vaga por outra livre da mesma especialidade, em qualquer data (motivo obrigatório).\n\n- **Rota:** `POST /agendamentos/{id}/remarcar`\n- **Quem chama:** secretaria (`tokenSecretaria`)\n- **Espera:** 200 — Agendamento remarcado",
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenSecretaria}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"vagaId\": {{vagaIdRemarcacao}},\n  \"motivo\": \"Médica em congresso nesse dia\"\n}" },
+            "url": { "raw": "{{baseUrl}}/agendamentos/{{agendamentoId}}/remarcar", "host": ["{{baseUrl}}"], "path": ["agendamentos", "{{agendamentoId}}", "remarcar"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Na vaga nova, com o histórico registrado', () => { const ag = pm.response.json(); pm.expect(ag.vagaId).to.eql(Number(pm.environment.get('vagaIdRemarcacao'))); pm.expect(ag.historico.at(-1).acao).to.eql('REMARCADO'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Antecipar João de volta para a vaga mais cedo",
+          "request": {
+            "description": "Troca a vaga por outra livre da mesma especialidade, anterior à data atual (motivo obrigatório).\n\n- **Rota:** `POST /agendamentos/{id}/antecipar`\n- **Quem chama:** secretaria (`tokenSecretaria`)\n- **Espera:** 200 — Agendamento antecipado",
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenSecretaria}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"vagaId\": {{vagaId}},\n  \"motivo\": \"Abriu vaga antes\"\n}" },
+            "url": { "raw": "{{baseUrl}}/agendamentos/{{agendamentoId}}/antecipar", "host": ["{{baseUrl}}"], "path": ["agendamentos", "{{agendamentoId}}", "antecipar"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Antecipado para a vaga mais cedo', () => { const ag = pm.response.json(); pm.expect(ag.vagaId).to.eql(Number(pm.environment.get('vagaId'))); pm.expect(ag.historico.at(-1).acao).to.eql('ANTECIPADO'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Antecipar para uma vaga mais tarde é recusado (422 esperado)",
+          "request": {
+            "description": "Troca a vaga por outra livre da mesma especialidade, anterior à data atual (motivo obrigatório).\n\n- **Rota:** `POST /agendamentos/{id}/antecipar`\n- **Quem chama:** secretaria (`tokenSecretaria`)\n- **Espera:** 422 — Vaga nova igual à atual, de outra especialidade ou não anterior à data atual",
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenSecretaria}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"vagaId\": {{vagaIdRemarcacao}},\n  \"motivo\": \"Teste de regra\"\n}" },
+            "url": { "raw": "{{baseUrl}}/agendamentos/{{agendamentoId}}/antecipar", "host": ["{{baseUrl}}"], "path": ["agendamentos", "{{agendamentoId}}", "antecipar"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 422', () => pm.response.to.have.status(422));",
+                  "pm.test('Código de erro REGRA_DE_NEGOCIO', () => pm.expect(pm.response.json().erro).to.eql('REGRA_DE_NEGOCIO'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cancelar sem motivo é recusado (400 esperado)",
+          "request": {
+            "description": "Cancela um agendamento confirmado (motivo obrigatório).\n\n- **Rota:** `POST /agendamentos/{id}/cancelar`\n- **Quem chama:** secretaria (`tokenSecretaria`)\n- **Espera:** 400 — Motivo em branco",
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenSecretaria}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"motivo\": \"\"\n}" },
+            "url": { "raw": "{{baseUrl}}/agendamentos/{{agendamentoId}}/cancelar", "host": ["{{baseUrl}}"], "path": ["agendamentos", "{{agendamentoId}}", "cancelar"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cancelar agendamento do João (volta para a fila)",
+          "request": {
+            "description": "Cancela um agendamento confirmado (motivo obrigatório).\n\n- **Rota:** `POST /agendamentos/{id}/cancelar`\n- **Quem chama:** secretaria (`tokenSecretaria`)\n- **Espera:** 200 — Agendamento cancelado",
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenSecretaria}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"motivo\": \"Paciente pediu para desmarcar\"\n}" },
+            "url": { "raw": "{{baseUrl}}/agendamentos/{{agendamentoId}}/cancelar", "host": ["{{baseUrl}}"], "path": ["agendamentos", "{{agendamentoId}}", "cancelar"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cancelado', () => pm.expect(pm.response.json().status).to.eql('CANCELADO'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reagendar João na vaga que ficou livre",
+          "request": {
+            "description": "Confirma um agendamento vinculando um encaminhamento a uma vaga disponível.\n\n- **Rota:** `POST /agendamentos`\n- **Quem chama:** secretaria (`tokenSecretaria`)\n- **Espera:** 201 — Agendamento confirmado",
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenSecretaria}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"encaminhamentoId\": {{encaminhamentoId}},\n  \"vagaId\": {{vagaId}}\n}" },
+            "url": { "raw": "{{baseUrl}}/agendamentos", "host": ["{{baseUrl}}"], "path": ["agendamentos"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.environment.set('agendamentoId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consultar agendamento do João",
+          "request": {
+            "description": "Consulta o agendamento confirmado de um encaminhamento.\n\n- **Rota:** `GET /encaminhamentos/{id}/agendamento`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 200 — Agendamento em vigor",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenMedico}}" }],
+            "url": { "raw": "{{baseUrl}}/encaminhamentos/{{encaminhamentoId}}/agendamento", "host": ["{{baseUrl}}"], "path": ["encaminhamentos", "{{encaminhamentoId}}", "agendamento"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Na vaga escolhida', () => pm.expect(pm.response.json().vagaId).to.eql(Number(pm.environment.get('vagaId'))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "João vê o próprio agendamento, com endereço da unidade",
+          "request": {
+            "description": "Consulta o agendamento confirmado de um encaminhamento.\n\n- **Rota:** `GET /encaminhamentos/{id}/agendamento`\n- **Quem chama:** paciente João, joao.paciente (`tokenPacienteJoao`)\n- **Espera:** 200 — Agendamento em vigor",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenPacienteJoao}}" }],
+            "url": { "raw": "{{baseUrl}}/encaminhamentos/{{encaminhamentoId}}/agendamento", "host": ["{{baseUrl}}"], "path": ["encaminhamentos", "{{encaminhamentoId}}", "agendamento"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Endereço da unidade vem na resposta', () => pm.expect(pm.response.json().unidadeEndereco).to.be.a('string').and.not.empty);", "pm.environment.set('agendamentoAtualId', pm.response.json().id);"] } }]
+        },
+        {
+          "name": "Marta NÃO confirma presença no agendamento do João (403 esperado)",
+          "request": {
+            "description": "O paciente confirma que vai comparecer ao próprio agendamento.\n\n- **Rota:** `POST /agendamentos/{id}/confirmar-presenca`\n- **Quem chama:** paciente Marta, marta.paciente (`tokenPaciente`)\n- **Espera:** 403 — Não é paciente, ou o agendamento é de outro paciente",
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenPaciente}}" }],
+            "url": { "raw": "{{baseUrl}}/agendamentos/{{agendamentoAtualId}}/confirmar-presenca", "host": ["{{baseUrl}}"], "path": ["agendamentos", "{{agendamentoAtualId}}", "confirmar-presenca"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 403', () => pm.response.to.have.status(403));"] } }]
+        },
+        {
+          "name": "Secretaria NÃO confirma presença pelo paciente (403 esperado)",
+          "request": {
+            "description": "O paciente confirma que vai comparecer ao próprio agendamento.\n\n- **Rota:** `POST /agendamentos/{id}/confirmar-presenca`\n- **Quem chama:** secretaria (`tokenSecretaria`)\n- **Espera:** 403 — Não é paciente, ou o agendamento é de outro paciente",
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenSecretaria}}" }],
+            "url": { "raw": "{{baseUrl}}/agendamentos/{{agendamentoAtualId}}/confirmar-presenca", "host": ["{{baseUrl}}"], "path": ["agendamentos", "{{agendamentoAtualId}}", "confirmar-presenca"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 403', () => pm.response.to.have.status(403));"] } }]
+        },
+        {
+          "name": "João confirma presença",
+          "request": {
+            "description": "O paciente confirma que vai comparecer ao próprio agendamento.\n\n- **Rota:** `POST /agendamentos/{id}/confirmar-presenca`\n- **Quem chama:** paciente João, joao.paciente (`tokenPacienteJoao`)\n- **Espera:** 200 — Presença confirmada; devolve o agendamento com presencaConfirmadaEm",
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenPacienteJoao}}" }],
+            "url": { "raw": "{{baseUrl}}/agendamentos/{{agendamentoAtualId}}/confirmar-presenca", "host": ["{{baseUrl}}"], "path": ["agendamentos", "{{agendamentoAtualId}}", "confirmar-presenca"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Presença confirmada gravada', () => pm.expect(pm.response.json().presencaConfirmadaEm).to.be.a('string'));"] } }]
+        },
+        {
+          "name": "Médico vê a presença confirmada pelo João",
+          "request": {
+            "description": "Consulta o agendamento confirmado de um encaminhamento.\n\n- **Rota:** `GET /encaminhamentos/{id}/agendamento`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 200 — Agendamento em vigor",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenMedico}}" }],
+            "url": { "raw": "{{baseUrl}}/encaminhamentos/{{encaminhamentoId}}/agendamento", "host": ["{{baseUrl}}"], "path": ["encaminhamentos", "{{encaminhamentoId}}", "agendamento"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));", "pm.test('Presença confirmada', () => pm.expect(pm.response.json().presencaConfirmadaEm).to.be.a('string'));"] } }]
+        },
+        {
+          "name": "Listar vagas marcadas (Cardiologia, de hoje em diante)",
+          "request": {
+            "description": "Lista vagas já marcadas de uma especialidade/exame, com o paciente de cada uma.\n\n- **Rota:** `GET /vagas/marcadas`\n- **Quem chama:** secretaria (`tokenSecretaria`)\n- **Espera:** 200 — Vagas ocupadas no período, por data e hora (pode ser lista vazia)",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenSecretaria}}" }],
+            "url": { "raw": "{{baseUrl}}/vagas/marcadas?especialidade=Cardiologia", "host": ["{{baseUrl}}"], "path": ["vagas", "marcadas"], "query": [{ "key": "especialidade", "value": "Cardiologia" }] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const marcadas = pm.response.json();",
+                  "pm.test('Inclui a vaga do João, com o nome do paciente', () => { const v = marcadas.find(m => m.encaminhamentoId === Number(pm.environment.get('encaminhamentoId'))); pm.expect(v).to.exist; pm.expect(v.pacienteNome).to.be.a('string').and.not.empty; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Médico NÃO lista vagas marcadas (403 esperado)",
+          "request": {
+            "description": "Lista vagas já marcadas de uma especialidade/exame, com o paciente de cada uma.\n\n- **Rota:** `GET /vagas/marcadas`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 403 — Papel sem acesso às vagas marcadas",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenMedico}}" }],
+            "url": { "raw": "{{baseUrl}}/vagas/marcadas?especialidade=Cardiologia", "host": ["{{baseUrl}}"], "path": ["vagas", "marcadas"], "query": [{ "key": "especialidade", "value": "Cardiologia" }] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Cadastro de profissionais e vagas (Secretaria)",
+      "description": "Cadastro de especialista e abertura de vagas em lote (registro e datas gerados na hora, para poder repetir), busca de pacientes pelo nome e atendimentos do paciente.",
+      "item": [
+        {
+          "name": "Listar unidades",
+          "request": {
+            "description": "Lista as unidades de saúde.\n\n- **Rota:** `GET /unidades`\n- **Quem chama:** secretaria (`tokenSecretaria`)\n- **Espera:** 200 — Unidades cadastradas",
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenSecretaria}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/unidades",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "unidades"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const lista = pm.response.json();",
+                  "pm.test('Tem unidades', () => pm.expect(lista).to.be.an('array').that.is.not.empty);",
+                  "pm.environment.set('unidadeId', lista[0].id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar profissionais de Dermatologia",
+          "request": {
+            "description": "Lista profissionais, opcionalmente só de uma especialidade/exame.\n\n- **Rota:** `GET /profissionais`\n- **Quem chama:** secretaria (`tokenSecretaria`)\n- **Espera:** 200 — Profissionais encontrados (pode ser lista vazia)",
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenSecretaria}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/profissionais?especialidade=Dermatologia",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "profissionais"
+              ],
+              "query": [
+                {
+                  "key": "especialidade",
+                  "value": "Dermatologia"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Só Dermatologia', () => pm.response.json().forEach(p => pm.expect(p.especialidade).to.eql('Dermatologia')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cadastrar especialista (Dermatologia)",
+          "request": {
+            "description": "Cadastra um especialista (especialidade do catálogo; registro do conselho único).\n\n- **Rota:** `POST /profissionais`\n- **Quem chama:** secretaria (`tokenSecretaria`)\n- **Espera:** 201 — Especialista cadastrado",
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenSecretaria}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/profissionais",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "profissionais"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Dra. Paula Andrade\",\n  \"registroConselho\": \"{{registroNovo}}\",\n  \"especialidade\": \"Dermatologia\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Registro único a cada rodada, para a coleção poder ser repetida.",
+                  "pm.environment.set('registroNovo', 'CRM-SP ' + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const p = pm.response.json();",
+                  "pm.test('Especialista de Dermatologia', () => { pm.expect(p.tipo).to.eql('ESPECIALISTA'); pm.expect(p.especialidade).to.eql('Dermatologia'); });",
+                  "pm.environment.set('profissionalNovoId', p.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registro do conselho repetido é recusado (409 esperado)",
+          "request": {
+            "description": "Cadastra um especialista (especialidade do catálogo; registro do conselho único).\n\n- **Rota:** `POST /profissionais`\n- **Quem chama:** secretaria (`tokenSecretaria`)\n- **Espera:** 409 — Já existe profissional com esse registro do conselho",
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenSecretaria}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/profissionais",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "profissionais"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Dra. Paula Andrade\",\n  \"registroConselho\": \"{{registroNovo}}\",\n  \"especialidade\": \"Dermatologia\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Código de erro CONFLITO', () => pm.expect(pm.response.json().erro).to.eql('CONFLITO'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Médico NÃO cadastra profissional (403 esperado)",
+          "request": {
+            "description": "Cadastra um especialista (especialidade do catálogo; registro do conselho único).\n\n- **Rota:** `POST /profissionais`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 403 — Papel sem acesso ao cadastro",
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenMedico}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/profissionais",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "profissionais"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Sem permissão\",\n  \"registroConselho\": \"CRM-SP 000\",\n  \"especialidade\": \"Dermatologia\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Abrir vagas em lote (2 semanas, seg e qua, 08-09h de 30 min)",
+          "request": {
+            "description": "Abre vagas em lote para um profissional, repetindo toda semana nos dias escolhidos.\n\n- **Rota:** `POST /vagas/lote`\n- **Quem chama:** secretaria (`tokenSecretaria`)\n- **Espera:** 201 — Vagas criadas; informa quantas foram ignoradas por já existirem",
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenSecretaria}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vagas/lote",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vagas",
+                "lote"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"profissionalId\": {{profissionalNovoId}},\n  \"unidadeId\": {{unidadeId}},\n  \"dataInicio\": \"{{dataInicioLote}}\",\n  \"dataFim\": \"{{dataFimLote}}\",\n  \"diasDaSemana\": [\"MONDAY\", \"WEDNESDAY\"],\n  \"horaInicio\": \"08:00\",\n  \"horaFim\": \"09:00\",\n  \"duracaoMinutos\": 30\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Próxima segunda e 13 dias depois (2 semanas), no fuso local, em AAAA-MM-DD.",
+                  "const d = new Date(); d.setDate(d.getDate() + ((8 - d.getDay()) % 7 || 7));",
+                  "const f = new Date(d); f.setDate(d.getDate() + 13);",
+                  "const iso = (x) => x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');",
+                  "pm.environment.set('dataInicioLote', iso(d)); pm.environment.set('dataFimLote', iso(f));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const r = pm.response.json();",
+                  "pm.test('8 vagas criadas (2 semanas × 2 dias × 2 horários)', () => { pm.expect(r.criadas).to.eql(8); pm.expect(r.ignoradasDuplicadas).to.eql(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Repetir o mesmo lote não duplica",
+          "request": {
+            "description": "Abre vagas em lote para um profissional, repetindo toda semana nos dias escolhidos.\n\n- **Rota:** `POST /vagas/lote`\n- **Quem chama:** secretaria (`tokenSecretaria`)\n- **Espera:** 201 — Vagas criadas; informa quantas foram ignoradas por já existirem",
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenSecretaria}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vagas/lote",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vagas",
+                "lote"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"profissionalId\": {{profissionalNovoId}},\n  \"unidadeId\": {{unidadeId}},\n  \"dataInicio\": \"{{dataInicioLote}}\",\n  \"dataFim\": \"{{dataFimLote}}\",\n  \"diasDaSemana\": [\"MONDAY\", \"WEDNESDAY\"],\n  \"horaInicio\": \"08:00\",\n  \"horaFim\": \"09:00\",\n  \"duracaoMinutos\": 30\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Nada novo, 8 ignoradas', () => { const r = pm.response.json(); pm.expect(r.criadas).to.eql(0); pm.expect(r.ignoradasDuplicadas).to.eql(8); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Lote com horário final antes do inicial (422 esperado)",
+          "request": {
+            "description": "Abre vagas em lote para um profissional, repetindo toda semana nos dias escolhidos.\n\n- **Rota:** `POST /vagas/lote`\n- **Quem chama:** secretaria (`tokenSecretaria`)\n- **Espera:** 422 — Período invertido ou longo demais, horário final antes do inicial, mais de 500 vagas ou nenhum horário futuro",
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenSecretaria}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vagas/lote",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vagas",
+                "lote"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"profissionalId\": {{profissionalNovoId}},\n  \"unidadeId\": {{unidadeId}},\n  \"dataInicio\": \"{{dataInicioLote}}\",\n  \"dataFim\": \"{{dataFimLote}}\",\n  \"diasDaSemana\": [\"MONDAY\", \"WEDNESDAY\"],\n  \"horaInicio\": \"08:00\",\n  \"horaFim\": \"07:00\",\n  \"duracaoMinutos\": 30\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 422', () => pm.response.to.have.status(422));",
+                  "pm.test('Código de erro REGRA_DE_NEGOCIO', () => pm.expect(pm.response.json().erro).to.eql('REGRA_DE_NEGOCIO'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Médico NÃO abre vagas (403 esperado)",
+          "request": {
+            "description": "Abre vagas em lote para um profissional, repetindo toda semana nos dias escolhidos.\n\n- **Rota:** `POST /vagas/lote`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 403 — Papel sem permissão para abrir vagas",
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenMedico}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/vagas/lote",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vagas",
+                "lote"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"profissionalId\": {{profissionalNovoId}},\n  \"unidadeId\": {{unidadeId}},\n  \"dataInicio\": \"{{dataInicioLote}}\",\n  \"dataFim\": \"{{dataFimLote}}\",\n  \"diasDaSemana\": [\"MONDAY\", \"WEDNESDAY\"],\n  \"horaInicio\": \"08:00\",\n  \"horaFim\": \"09:00\",\n  \"duracaoMinutos\": 30\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Médico busca paciente pelo nome, sem acento",
+          "request": {
+            "description": "Busca pacientes pelo nome (mínimo 2 letras, até 20 resultados, CPF mascarado).\n\n- **Rota:** `GET /pacientes`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 200 — Até 20 pacientes, em ordem de nome (pode ser lista vazia)",
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenMedico}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pacientes?nome=joao",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pacientes"
+              ],
+              "query": [
+                {
+                  "key": "nome",
+                  "value": "joao"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const lista = pm.response.json();",
+                  "pm.test('Encontra o João mesmo sem acento', () => pm.expect(lista.some(p => p.nome.startsWith('João'))).to.be.true);",
+                  "pm.test('CPF só mascarado', () => lista.forEach(p => { pm.expect(p).to.not.have.property('cpf'); pm.expect(p.cpfMascarado).to.match(/^\\*\\*\\*\\.\\d{3}\\.\\d{3}-\\*\\*$/); }));",
+                  "pm.test('No máximo 20 resultados', () => pm.expect(lista.length).to.be.at.most(20));",
+              "const joao = lista.find(p => p.nome.startsWith('João'));",
+              "if (joao) pm.environment.set('pacienteBuscadoId', joao.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Busca de paciente com 1 letra é recusada (400 esperado)",
+          "request": {
+            "description": "Busca pacientes pelo nome (mínimo 2 letras, até 20 resultados, CPF mascarado).\n\n- **Rota:** `GET /pacientes`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 400 — Nome ausente ou com menos de 2 letras",
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenMedico}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pacientes?nome=j",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pacientes"
+              ],
+              "query": [
+                {
+                  "key": "nome",
+                  "value": "j"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Paciente NÃO busca outros pacientes (403 esperado)",
+          "request": {
+            "description": "Busca pacientes pelo nome (mínimo 2 letras, até 20 resultados, CPF mascarado).\n\n- **Rota:** `GET /pacientes`\n- **Quem chama:** paciente Marta, marta.paciente (`tokenPaciente`)\n- **Espera:** 403 — Papel sem acesso à busca de pacientes",
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenPaciente}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pacientes?nome=joao",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pacientes"
+              ],
+              "query": [
+                {
+                  "key": "nome",
+                  "value": "joao"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Secretaria lista os atendimentos do paciente buscado",
+          "request": {
+            "description": "Lista os atendimentos de um paciente, do mais recente para o mais antigo.\n\n- **Rota:** `GET /pacientes/{id}/atendimentos`\n- **Quem chama:** secretaria (`tokenSecretaria`)\n- **Espera:** 200 — Atendimentos visíveis para o usuário (pode ser lista vazia)",
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenSecretaria}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pacientes/{{pacienteBuscadoId}}/atendimentos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pacientes",
+                "{{pacienteBuscadoId}}",
+                "atendimentos"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const lista = pm.response.json();",
+                  "pm.test('Todos do mesmo paciente', () => lista.forEach(a => pm.expect(a.pacienteId).to.eql(Number(pm.environment.get('pacienteBuscadoId')))));",
+                  "pm.test('Do mais recente para o mais antigo', () => { for (let i = 1; i < lista.length; i++) pm.expect(lista[i - 1].data >= lista[i].data).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Laboratório NÃO lista atendimentos do paciente (403 esperado)",
+          "request": {
+            "description": "Lista os atendimentos de um paciente, do mais recente para o mais antigo.\n\n- **Rota:** `GET /pacientes/{id}/atendimentos`\n- **Quem chama:** laboratório, lab.central (`tokenLab`)\n- **Espera:** 403 — Paciente pedindo os de outro, ou especialista",
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenLab}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pacientes/{{pacienteBuscadoId}}/atendimentos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pacientes",
+                "{{pacienteBuscadoId}}",
+                "atendimentos"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Resultado de Exame",
+      "description": "A especialista atende o João (registra o resultado), ele sai da fila; agenda e vagas da especialista; o médico da UBS consulta o resultado.",
+      "item": [
+        {
+          "name": "Laboratório NÃO pode fechar consulta de Cardiologia (403 esperado)",
+          "request": {
+            "description": "Registra o resultado/laudo: o especialista (inclusive o laboratório), para a consulta ou exame agendado numa vaga dele.\n\n- **Rota:** `POST /encaminhamentos/{id}/resultado-exame`\n- **Quem chama:** laboratório, lab.central (`tokenLab`)\n- **Espera:** 403 — Não é o especialista responsável",
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenLab}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"referenciaArquivo\": \"laudo-indevido.pdf\",\n  \"dataResultado\": \"2026-09-25\"\n}" },
+            "url": { "raw": "{{baseUrl}}/encaminhamentos/{{encaminhamentoId}}/resultado-exame", "host": ["{{baseUrl}}"], "path": ["encaminhamentos", "{{encaminhamentoId}}", "resultado-exame"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 403', () => pm.response.to.have.status(403));"] } }]
+        },
+        {
+          "name": "Especialista vê a consulta do João, agendada na vaga dela (200 esperado)",
+          "request": {
+            "description": "Consulta um encaminhamento pelo id.\n\n- **Rota:** `GET /encaminhamentos/{id}`\n- **Quem chama:** especialista de Cardiologia, elisa.cardio (`tokenEspecialista`)\n- **Espera:** 200 — Encaminhamento encontrado",
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenEspecialista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/encaminhamentos/{{encaminhamentoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "encaminhamentos",
+                "{{encaminhamentoId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Agenda da especialista: João a atender",
+          "request": {
+            "description": "Encaminhamentos agendados nas vagas do especialista logado.\n\n- **Rota:** `GET /agenda/encaminhamentos`\n- **Quem chama:** especialista de Cardiologia, elisa.cardio (`tokenEspecialista`)\n- **Espera:** 200 — Encaminhamentos da agenda, por data e hora (pode ser lista vazia)",
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenEspecialista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/agenda/encaminhamentos?situacao=A_ATENDER",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "agenda",
+                "encaminhamentos"
+              ],
+              "query": [
+                {
+                  "key": "situacao",
+                  "value": "A_ATENDER"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('João aparece como a atender', () => {",
+                  "  const ids = pm.response.json().map(e => e.encaminhamentoId);",
+                  "  pm.expect(ids).to.include(Number(pm.collectionVariables.get('encaminhamentoId') || pm.environment.get('encaminhamentoId')));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Registrar atendimento realizado (especialista de Cardiologia)",
+          "request": {
+            "description": "Registra o resultado/laudo: o especialista (inclusive o laboratório), para a consulta ou exame agendado numa vaga dele.\n\n- **Rota:** `POST /encaminhamentos/{id}/resultado-exame`\n- **Quem chama:** especialista de Cardiologia, elisa.cardio (`tokenEspecialista`)\n- **Espera:** 201 — Resultado registrado; o paciente saiu da fila",
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenEspecialista}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"referenciaArquivo\": \"laudo-final-joao.pdf\",\n  \"dataResultado\": \"2026-09-25\",\n  \"observacoes\": \"Sem alterações relevantes\"\n}" },
+            "url": { "raw": "{{baseUrl}}/encaminhamentos/{{encaminhamentoId}}/resultado-exame", "host": ["{{baseUrl}}"], "path": ["encaminhamentos", "{{encaminhamentoId}}", "resultado-exame"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 201', () => pm.response.to.have.status(201));"] } }]
+        },
+        {
+          "name": "Agenda da especialista: João atendido",
+          "request": {
+            "description": "Encaminhamentos agendados nas vagas do especialista logado.\n\n- **Rota:** `GET /agenda/encaminhamentos`\n- **Quem chama:** especialista de Cardiologia, elisa.cardio (`tokenEspecialista`)\n- **Espera:** 200 — Encaminhamentos da agenda, por data e hora (pode ser lista vazia)",
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenEspecialista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/agenda/encaminhamentos?situacao=ATENDIDO",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "agenda",
+                "encaminhamentos"
+              ],
+              "query": [
+                {
+                  "key": "situacao",
+                  "value": "ATENDIDO"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('João aparece como atendido', () => {",
+                  "  const ids = pm.response.json().map(e => e.encaminhamentoId);",
+                  "  pm.expect(ids).to.include(Number(pm.collectionVariables.get('encaminhamentoId') || pm.environment.get('encaminhamentoId')));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Vagas da especialista (livres e com paciente)",
+          "request": {
+            "description": "Vagas do especialista logado, livres e ocupadas.\n\n- **Rota:** `GET /agenda/vagas`\n- **Quem chama:** especialista de Cardiologia, elisa.cardio (`tokenEspecialista`)\n- **Espera:** 200 — Vagas, por data e hora (pode ser lista vazia)",
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenEspecialista}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/agenda/vagas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "agenda",
+                "vagas"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Só vagas de Cardiologia (as dela)', () => {",
+                  "  pm.response.json().forEach(v => pm.expect(v.especialidadeOuExame).to.eql('Cardiologia'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Médico NÃO vê agenda de especialista (403 esperado)",
+          "request": {
+            "description": "Vagas do especialista logado, livres e ocupadas.\n\n- **Rota:** `GET /agenda/vagas`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 403 — Não é especialista, ou o usuário não tem cadastro de profissional",
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenMedico}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/agenda/vagas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "agenda",
+                "vagas"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consultar resultado (médico da UBS)",
+          "request": {
+            "description": "Consulta o resultado/laudo de um exame.\n\n- **Rota:** `GET /encaminhamentos/{id}/resultado-exame`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 200 — Resultado registrado",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenMedico}}" }],
+            "url": { "raw": "{{baseUrl}}/encaminhamentos/{{encaminhamentoId}}/resultado-exame", "host": ["{{baseUrl}}"], "path": ["encaminhamentos", "{{encaminhamentoId}}", "resultado-exame"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "João atendido saiu da fila (404 esperado)",
+          "request": {
+            "description": "Consulta a posição e o score de um encaminhamento na fila.\n\n- **Rota:** `GET /encaminhamentos/{id}/posicao-fila`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 404 — Encaminhamento não encontrado, ainda não entrou na fila ou já foi atendido e saiu",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenMedico}}" }],
+            "url": { "raw": "{{baseUrl}}/encaminhamentos/{{encaminhamentoId}}/posicao-fila", "host": ["{{baseUrl}}"], "path": ["encaminhamentos", "{{encaminhamentoId}}", "posicao-fila"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 404 (a fila vale até o atendimento)', () => pm.response.to.have.status(404));"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Painel (Secretaria)",
+      "description": "Métricas gerais e indicadores dos gráficos do painel da secretaria.",
+      "item": [
+        {
+          "name": "Resumo geral",
+          "request": {
+            "description": "Métricas gerais: atendidos, encaminhados, vagas, agendamentos.\n\n- **Rota:** `GET /painel/resumo`\n- **Quem chama:** secretaria (`tokenSecretaria`)\n- **Espera:** 200 — Métricas gerais",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenSecretaria}}" }],
+            "url": { "raw": "{{baseUrl}}/painel/resumo", "host": ["{{baseUrl}}"], "path": ["painel", "resumo"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Demanda por especialidade",
+          "request": {
+            "description": "Quantidade de encaminhamentos por especialidade/exame.\n\n- **Rota:** `GET /painel/demanda-por-especialidade`\n- **Quem chama:** secretaria (`tokenSecretaria`)\n- **Espera:** 200 — Total de encaminhamentos por especialidade/exame",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenSecretaria}}" }],
+            "url": { "raw": "{{baseUrl}}/painel/demanda-por-especialidade", "host": ["{{baseUrl}}"], "path": ["painel", "demanda-por-especialidade"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Indicadores para os gráficos do painel",
+          "request": {
+            "description": "Indicadores para os gráficos: situação dos encaminhamentos, fila por risco, demanda × vagas e movimento de 30 dias.\n\n- **Rota:** `GET /painel/indicadores`\n- **Quem chama:** secretaria (`tokenSecretaria`)\n- **Espera:** 200 — Indicadores do painel",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenSecretaria}}" }],
+            "url": { "raw": "{{baseUrl}}/painel/indicadores", "host": ["{{baseUrl}}"], "path": ["painel", "indicadores"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('Números, situação (7), fila por risco, demanda e 30 dias de movimento', () => { pm.expect(r.numeros.naFila).to.be.a('number'); pm.expect(r.situacaoEncaminhamentos).to.have.lengthOf(7); pm.expect(r.filaPorRisco).to.be.an('array'); pm.expect(r.demandaCapacidade).to.be.an('array'); pm.expect(r.movimento30Dias).to.have.lengthOf(30); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Médico NÃO vê os indicadores (403 esperado)",
+          "request": {
+            "description": "Indicadores para os gráficos: situação dos encaminhamentos, fila por risco, demanda × vagas e movimento de 30 dias.\n\n- **Rota:** `GET /painel/indicadores`\n- **Quem chama:** médico da UBS, bruno.ubs (`tokenMedico`)\n- **Espera:** 403 — Papel sem acesso ao painel",
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenMedico}}" }],
+            "url": { "raw": "{{baseUrl}}/painel/indicadores", "host": ["{{baseUrl}}"], "path": ["painel", "indicadores"] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 403', () => pm.response.to.have.status(403));"] } }]
+        }
+      ]
+    }
+  ]
+}

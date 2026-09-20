@@ -1,0 +1,1235 @@
+:root {
+  --cor-fundo: #f5f7fa;
+  --cor-texto: #1f2937;
+  --cor-borda: #d7dce2;
+  --cor-primaria: #2563eb;
+  --cor-erro: #b91c1c;
+  --cor-vazio: #6b7280;
+  --cor-superficie: #ffffff;
+  /* Gráficos: 2 séries (slots 1-2 da paleta validada) e as cores de risco do protocolo de Manchester,
+     re-escalonadas para que vizinhas (amarelo/laranja/vermelho) se distingam, inclusive com daltonismo
+     (validate_palette.js: CVD ΔE >= 8,9 e visão normal >= 16 entre vizinhas). O amarelo tem contraste
+     < 3:1 com o fundo, por isso todo gráfico tem legenda, detalhe no mouse e "ver dados em tabela". */
+  --serie-1: #2a78d6;
+  --serie-2: #eb6834;
+  --risco-azul: #2a78d6;
+  --risco-verde: #008300;
+  --risco-amarelo: #d4a600;
+  --risco-laranja: #e2551f;
+  --risco-vermelho: #9f1d1d;
+  --grafico-grade: #e5e7eb;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--cor-fundo);
+  color: var(--cor-texto);
+}
+
+.layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0.75rem 1.5rem;
+  background: white;
+  border-bottom: 1px solid var(--cor-borda);
+  flex-wrap: wrap;
+}
+
+.marca {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.logo {
+  height: 34px;
+  width: auto;
+  display: block;
+}
+
+.logo-login {
+  height: 56px;
+  margin: 0 auto 1rem;
+}
+
+.nav {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.nav a {
+  color: var(--cor-texto);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.nav a:hover {
+  color: var(--cor-primaria);
+}
+
+.sessao {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.sessao button {
+  padding: 0.3rem 0.7rem;
+}
+
+.conteudo {
+  flex: 1;
+  padding: 1.5rem;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.card {
+  background: white;
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+}
+
+.login-card {
+  max-width: 380px;
+  margin: 3rem auto;
+  text-align: center;
+}
+
+.login-card h1 {
+  margin-top: 0;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.linha-checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--cor-borda);
+  border-radius: 6px;
+}
+
+textarea {
+  min-height: 4.5rem;
+  resize: vertical;
+}
+
+.linha-com-botao {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.linha-com-botao input {
+  flex: 1;
+}
+
+button {
+  font: inherit;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  background: var(--cor-primaria);
+  color: white;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.hint {
+  font-size: 0.85rem;
+  color: var(--cor-vazio);
+}
+
+.estado {
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+}
+
+.estado-carregando {
+  color: var(--cor-vazio);
+}
+
+.estado-erro {
+  color: var(--cor-erro);
+}
+
+.estado-vazio {
+  color: var(--cor-vazio);
+  font-style: italic;
+}
+
+.estado-alerta {
+  color: #92400e;
+}
+
+/* O que ainda falta para liberar "Criar encaminhamento". */
+.lista-pendencias {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.detalhes {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+  border-radius: 6px;
+}
+
+.detalhes-titulo {
+  margin: 0 0 0.5rem;
+  font-weight: 600;
+  color: #166534;
+}
+
+.detalhes dl {
+  margin: 0;
+}
+
+.detalhes-linha {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  font-size: 0.9rem;
+  border-top: 1px solid #dcfce7;
+}
+
+.detalhes-linha:first-child {
+  border-top: none;
+}
+
+.detalhes dt {
+  flex: 0 0 9rem;
+  color: var(--cor-vazio);
+}
+
+.detalhes dd {
+  margin: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+.tabela th,
+.tabela td {
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--cor-borda);
+}
+
+/* A tabela de vagas (com a coluna do botão) não cabe em meia tela: rola dentro do card em vez de vazar. */
+.tabela-rolagem {
+  overflow-x: auto;
+}
+
+.linha-selecionada td {
+  background: #eff6ff;
+}
+
+/* Caixinha de seleção da vaga; o texto "Selecionar" aparece no tooltip (title) ao passar o mouse. */
+.caixa-selecao {
+  width: 1.1rem;
+  height: 1.1rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--cor-primaria);
+  border-radius: 4px;
+  background: white;
+  color: white;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.caixa-selecao:hover {
+  background: #eff6ff;
+}
+
+.caixa-selecao[aria-pressed="true"],
+.caixa-selecao[data-marcada="true"] {
+  background: var(--cor-primaria);
+}
+
+/* Card que acompanha a rolagem. Só quando .grid-2 tem 2 colunas (2 × 360px + gap + padding de .conteudo + barra de rolagem);
+   com os cards empilhados, ficar fixo cobriria o card de cima. */
+@media (min-width: 820px) {
+  .card-fixo {
+    position: sticky;
+    top: 1rem;
+  }
+}
+
+.linha-clicavel {
+  cursor: pointer;
+}
+
+.linha-clicavel:hover td {
+  background: #f8fafc;
+}
+
+.linha-clicavel.linha-selecionada:hover td {
+  background: #eff6ff;
+}
+
+.filtro-periodo {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.filtro-periodo label {
+  flex: 1 1 9rem;
+}
+
+.modal {
+  width: min(640px, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  color: var(--cor-texto);
+  box-shadow: 0 10px 40px rgb(0 0 0 / 0.25);
+}
+
+.modal::backdrop {
+  background: rgb(15 23 42 / 0.5);
+}
+
+.modal-conteudo {
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+
+.modal-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.modal-topo h2 {
+  margin: 0;
+}
+
+.modal-acao {
+  margin-top: 1rem;
+}
+
+.botao-voltar {
+  margin-top: 1rem;
+  background: transparent;
+  color: var(--cor-primaria);
+  padding: 0.25rem 0;
+}
+
+.acoes-agendamento {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.botao-secundario {
+  background: white;
+  color: var(--cor-primaria);
+  border: 1px solid var(--cor-primaria);
+}
+
+.botao-perigo {
+  background: #dc2626;
+  color: white;
+}
+
+.form-acao-agendamento {
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--cor-borda);
+  border-radius: 6px;
+  background: #f8fafc;
+}
+
+.historico-agendamento {
+  margin: 0.75rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.8rem;
+  color: var(--cor-vazio);
+}
+
+.titulo-fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.botao-relatorio {
+  margin-left: auto;
+  padding: 0.25rem 0.7rem;
+  font-size: 0.8rem;
+}
+
+.relatorio-texto {
+  white-space: pre-wrap;
+  line-height: 1.5;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  background: #f8fafc;
+  border: 1px solid var(--cor-borda);
+  font-size: 0.9rem;
+}
+
+.lista-sugestoes {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sugestao {
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--cor-borda);
+  border-left-width: 4px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+.sugestao p {
+  margin: 0.3rem 0 0;
+}
+
+.sugestao-alta {
+  border-left-color: #dc2626;
+}
+
+.sugestao-media {
+  border-left-color: #f59e0b;
+}
+
+.sugestao-clicavel {
+  cursor: pointer;
+}
+
+.sugestao-clicavel:hover {
+  background: #f8fafc;
+}
+
+.sugestao-topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.badge-prioridade-alta {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.badge-prioridade-media {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.acoes-topo {
+  margin-top: 0;
+}
+
+.form-cadastro-vagas {
+  margin-top: 1rem;
+}
+
+.dias-semana {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.9rem;
+  border: 1px solid var(--cor-borda);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  margin: 0;
+}
+
+.dias-semana legend {
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0 0.25rem;
+}
+
+.modal-fechar {
+  padding: 0.1rem 0.6rem;
+  font-size: 1.4rem;
+  line-height: 1;
+  background: transparent;
+  color: var(--cor-vazio);
+}
+
+.modal-fechar:hover {
+  background: #f1f5f9;
+}
+
+/* Tabela com mais colunas (ex.: vagas): letra e espaçamento menores para caber em meia tela sem quebrar tanto. */
+.tabela-compacta {
+  font-size: 0.8rem;
+}
+
+.tabela-compacta th,
+.tabela-compacta td {
+  padding: 0.3rem 0.4rem;
+}
+
+.filtro-situacao {
+  margin: 0.75rem 0 0.25rem;
+  max-width: 18rem;
+}
+
+.alerta-vermelho {
+  margin: 0.25rem 0 0.5rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 6px;
+  border-left: 4px solid #dc2626;
+  background: #fef2f2;
+  color: #991b1b;
+  font-size: 0.85rem;
+}
+
+.contagem-vermelho {
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
+
+/* Paciente com risco vermelho: fundo e barra à esquerda, para saltar aos olhos na fila. */
+.linha-risco-vermelho td {
+  background: #fef2f2;
+}
+
+.linha-risco-vermelho td:first-child {
+  box-shadow: inset 4px 0 0 #dc2626;
+}
+
+.linha-clicavel.linha-risco-vermelho:hover td {
+  background: #fee2e2;
+}
+
+.selo-vermelho {
+  margin-left: 0.35rem;
+  color: #dc2626;
+  font-weight: 700;
+  cursor: help;
+}
+
+/* Cabeçalho abreviado (ex.: "Enca."): o nome completo aparece ao passar o mouse. */
+.tabela abbr[title] {
+  text-decoration: underline dotted;
+  cursor: help;
+}
+
+.metrica-alerta {
+  background: #fef2f2;
+  box-shadow: inset 0 0 0 1px #fecaca;
+}
+
+.metrica-alerta .metrica-valor {
+  color: #991b1b;
+}
+
+.grade-graficos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr));
+  gap: 1rem;
+}
+
+.cartao-grafico {
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  padding: 0.9rem 1rem 1rem;
+  background: var(--cor-superficie);
+  min-width: 0;
+}
+
+.cartao-grafico-topo {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0 0.75rem;
+}
+
+.cartao-grafico-topo > div {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.cartao-grafico h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.cartao-grafico .hint {
+  margin: 0.15rem 0 0.5rem;
+}
+
+.cartao-grafico .botao-voltar {
+  margin-top: 0;
+  white-space: nowrap;
+  font-size: 0.8rem;
+}
+
+.grafico {
+  position: relative;
+  width: 100%;
+}
+
+.grafico svg {
+  display: block;
+  overflow: visible;
+}
+
+.grafico-texto {
+  font-size: 12px;
+  fill: var(--cor-texto);
+}
+
+.grafico-valor {
+  font-size: 12px;
+  font-weight: 600;
+  fill: var(--cor-texto);
+}
+
+.grafico-texto-eixo {
+  font-size: 11px;
+  fill: var(--cor-vazio);
+}
+
+.grafico-eixo,
+.grafico-grade {
+  stroke: var(--grafico-grade);
+  stroke-width: 1;
+}
+
+.grafico-guia {
+  stroke: var(--cor-vazio);
+  stroke-width: 1;
+}
+
+.grafico-marca:hover,
+.grafico-marca:focus {
+  opacity: 0.8;
+  outline: none;
+}
+
+.grafico-legenda {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.9rem;
+  padding: 0;
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  color: var(--cor-texto);
+}
+
+.grafico-legenda li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.grafico-chave-barra {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.grafico-chave-linha {
+  display: inline-block;
+  width: 14px;
+  height: 2px;
+  border-radius: 1px;
+}
+
+.grafico-dica {
+  position: absolute;
+  pointer-events: none;
+  transform: translateY(-100%);
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.12);
+  padding: 0.4rem 0.6rem;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  z-index: 2;
+}
+
+.grafico-dica-titulo {
+  color: var(--cor-vazio);
+  margin-bottom: 0.15rem;
+}
+
+.grafico-dica-linha {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.grafico-dica-linha span:last-child {
+  color: var(--cor-vazio);
+}
+
+.paginacao {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.paginacao button {
+  padding: 0.3rem 0.8rem;
+}
+
+.timeline {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  row-gap: 0.75rem;
+}
+
+.timeline li {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 5.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--cor-vazio);
+}
+
+/* Linha que liga a etapa anterior a esta. */
+.timeline li:not(:first-child)::before {
+  content: "";
+  position: absolute;
+  top: 0.8rem;
+  left: -50%;
+  right: 50%;
+  height: 2px;
+  background: #cbd5e1;
+}
+
+.timeline li.concluida:not(:first-child)::before {
+  background: #16a34a;
+}
+
+.timeline-marcador {
+  position: relative;
+  z-index: 1;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  background: white;
+  border: 2px solid #cbd5e1;
+  color: var(--cor-vazio);
+}
+
+.timeline li.concluida .timeline-marcador {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: white;
+}
+
+.timeline li.concluida {
+  color: #166534;
+}
+
+.timeline li.atual .timeline-marcador {
+  box-shadow: 0 0 0 4px #bbf7d0;
+}
+
+.timeline li.atual .timeline-nome {
+  font-weight: 700;
+}
+
+.timeline li.alerta {
+  color: #991b1b;
+}
+
+.timeline li.alerta .timeline-marcador {
+  background: #dc2626;
+  border-color: #dc2626;
+  box-shadow: 0 0 0 4px #fee2e2;
+}
+
+.metricas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.metrica {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem;
+  background: #f1f5f9;
+  border-radius: 8px;
+}
+
+.metrica-valor {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--cor-primaria);
+}
+
+.metrica-label {
+  font-size: 0.8rem;
+  color: var(--cor-vazio);
+  text-align: center;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge-status-aguardando_documentos {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.badge-status-em_analise {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.badge-status-bloqueado_revisao {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.badge-status-na_fila {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+.badge-status-agendado {
+  background: #cffafe;
+  color: #155e75;
+}
+
+.badge-status-realizado {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.badge-status-cancelado {
+  background: #e5e7eb;
+  color: #6b7280;
+  text-decoration: line-through;
+}
+
+.badge-risco-azul {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.badge-risco-verde {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.badge-risco-amarelo {
+  background: #fef9c3;
+  color: #854d0e;
+}
+
+.badge-risco-laranja {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+.badge-risco-vermelho {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.lista-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.card-encaminhamento {
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.card-encaminhamento-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.destaque {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+}
+
+.destaque-fila {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+.destaque-agendamento {
+  background: #cffafe;
+  color: #155e75;
+}
+
+.fila-especialidade {
+  margin-top: 1.5rem;
+}
+
+.fila-especialidade h3 {
+  margin-bottom: 0.25rem;
+}
+
+/* Cabeçalho da tela de vagas: título em cima, os dois botões lado a lado com mesma largura e altura. */
+.topo-vagas h2 {
+  margin-bottom: 0.75rem;
+}
+
+.acoes-vagas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.acoes-vagas button {
+  flex: 1 1 10rem;
+  border: 1px solid var(--cor-primaria);
+  white-space: nowrap;
+}
+
+/* Campo de busca de paciente pelo nome (Novo atendimento). */
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.campo-rotulo {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.busca-paciente {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.resultados-busca {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 10;
+  margin: 0;
+  padding: 0.25rem;
+  list-style: none;
+  max-height: 16rem;
+  overflow-y: auto;
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: 6px;
+  box-shadow: 0 6px 16px rgb(0 0 0 / 0.12);
+}
+
+.resultados-busca > li.hint,
+.resultados-busca > li.erro-busca {
+  padding: 0.5rem 0.6rem;
+}
+
+.erro-busca {
+  color: var(--cor-erro);
+  font-size: 0.85rem;
+}
+
+.resultados-busca button {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  background: transparent;
+  color: var(--cor-texto);
+  text-align: left;
+  border-radius: 4px;
+}
+
+.resultados-busca button:hover,
+.resultados-busca button:focus-visible {
+  background: var(--cor-fundo);
+}
+
+.paciente-selecionado {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--cor-borda);
+  border-radius: 6px;
+  background: var(--cor-fundo);
+}
+
+.botao-link {
+  padding: 0;
+  background: transparent;
+  color: var(--cor-primaria);
+  text-decoration: underline;
+  align-self: center;
+}
+
+/* Documentos do novo encaminhamento (um bloco por documento, "+" para adicionar mais). */
+.documentos-encaminhamento {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--cor-borda);
+  border-radius: 6px;
+}
+
+.documentos-encaminhamento legend {
+  padding: 0 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.documentos-encaminhamento .hint {
+  margin: 0;
+}
+
+.bloco-documento {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.75rem;
+  border-radius: 6px;
+  background: var(--cor-fundo);
+}
+
+.bloco-documento-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.linha-datas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.6rem;
+}
+
+/* Presença do paciente no agendamento (visto por todos os papéis). */
+.badge-presenca-confirmada {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.badge-presenca-pendente {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+/* Visão do paciente: um encaminhamento por linha, com texto em linguagem simples. */
+.lista-cards-paciente {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+  max-width: 760px;
+}
+
+.card-paciente {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.1rem 1.25rem;
+}
+
+.card-paciente h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.card-paciente .hint {
+  margin: 0;
+}
+
+.aviso-paciente {
+  margin: 0.25rem 0 0;
+  padding: 0.75rem 0.9rem;
+  border-radius: 8px;
+  background: #f1f5f9;
+  line-height: 1.45;
+}
+
+.aviso-paciente p {
+  margin: 0 0 0.4rem;
+}
+
+.aviso-fila {
+  background: #fff7ed;
+  color: #7c2d12;
+}
+
+.aviso-agendado {
+  background: #ecfeff;
+  color: #164e63;
+}
+
+.aviso-atendido {
+  background: #f0fdf4;
+  color: #14532d;
+}
+
+.aviso-titulo {
+  font-weight: 600;
+}
+
+.aviso-data {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.aviso-lista {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.2rem 0.75rem;
+  margin: 0 0 0.5rem;
+}
+
+.aviso-lista dt {
+  font-weight: 600;
+}
+
+.aviso-lista dd {
+  margin: 0;
+}
+
+.presenca-ok {
+  font-weight: 600;
+  color: #166534;
+}
+
+.presenca-pedido {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin: 0.25rem 0 0.5rem;
+}
+
+.presenca-pedido p {
+  margin: 0;
+}
+
+.paciente-origem {
+  border-top: 1px solid var(--cor-borda);
+  padding-top: 0.5rem;
+}
+
+.paciente-origem h4 {
+  margin: 0 0 0.2rem;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--cor-vazio);
+}
+
+.paciente-origem p {
+  margin: 0;
+}
